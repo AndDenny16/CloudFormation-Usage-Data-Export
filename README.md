@@ -1,7 +1,6 @@
 # DynamoDB to S3 via EventBridge/Lambda
 CloudFormationTemplate for creating a lambda function/permissions that exports DynamoDB data to S3. Code and identifiers have been anonymized from original to display my work in CloudFormation. You will not be able to directly run this.
 
-Once a Day at 8:00PM EST
 ## What this Creates
   1. Lambda Role with following Permissions
        - DynamoDB Table amplify-CHAT-USAGE-TABLE-NAME
