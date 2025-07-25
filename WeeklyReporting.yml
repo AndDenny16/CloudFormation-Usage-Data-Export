@@ -1,0 +1,117 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: "Deploy Weekly Lambda function triggered by EventBridge rule to Export DynamoDB Usage to S3 and Notification with SNS"
+Resources:
+
+ # Creates S3 Bucket
+  LogStorageBucket:
+    Type: AWS::S3::Bucket
+    DeletionPolicy: Retain
+    Properties: 
+      AccessControl: Private
+      BucketEncryption: 
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+      BucketName: ORG-DECIDED-NAME-weeklyreportingparquets
+
+  #SNS Topic For Notification
+  ExportNotification:
+    Type: AWS::SNS::Topic
+    Properties:
+      DisplayName: DynamoDBExportToS3NotificationSNS
+      Subscription: 
+        - Endpoint: redacted@domain.edu
+          Protocol: email
+      TopicName: DynamoDBExportToS3NotificationSNS
+
+
+  #EventBridge Rule - Will Trigger Lambda Every Day at Midnight
+  WeeklyReportRule:
+    Type: AWS::Events::Rule
+    Properties:
+      Name: WeeklyReportRule  
+      Description: "EventBridge Rule to Invoke Lambda to Export Data from DynamoBD to S3"
+      ScheduleExpression: "cron(0 0 * * ? *)"
+      State:  "ENABLED"
+      Targets:
+      - Arn: !GetAtt ExportDynamoToS3Lambda.Arn
+        Id: TargetFunctionV1
+  InvokeLambdaPermission:
+    Type: AWS::Lambda::Permission
+    DependsOn: WeeklyReportRule
+    Properties:
+      FunctionName: !Ref ExportDynamoToS3Lambda
+      Action: lambda:InvokeFunction
+      Principal: events.amazonaws.com
+      SourceArn: !GetAtt WeeklyReportRule.Arn
+
+  #Creates Rule for Lambda to Access prod-chat-usage DynamoBD Table and s3 Bucket defined above
+  LambdaExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: export-lambda-execution-role
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Policies:
+        - PolicyName: AccessToProdChatUsageDynamoDB
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              Effect: Allow
+              Action:
+                - dynamodb:ExportTableToPointInTime
+              Resource:
+                - "arn:aws:dynamodb:us-east-1:123456789:table/amplify-CHAT-USAGE-TABLE-NAME"
+
+        - PolicyName: AccessToS3Bucket
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              Effect: Allow
+              Action: 
+                - s3:PutObjectAcl
+                - s3:PutObject
+                - s3:AbortMultipartUpload
+              Resource:
+                - !Sub "arn:aws:s3:::${LogStorageBucket}/*"
+        - PolicyName: AccessToSNS
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              Effect: Allow
+              Action:
+                - sns:Publish
+              Resource:
+                - !Ref ExportNotification
+
+  #Actual Lambda Definition        
+  ExportDynamoToS3Lambda:
+    DependsOn: LogStorageBucket
+    Type: AWS::Lambda::Function
+    Properties:
+      Description: "Exports the DynamoDB prod-chat-usage Table to a S3 Bucket for export via Logscale"
+      FunctionName: ORG-DECIDED-NAME
+      Handler: lambda_function.lambda_handler
+      MemorySize: 128
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Runtime: python3.12
+      Timeout: 360
+      Environment:
+        Variables:
+          BUCKET_NAME: !Ref LogStorageBucket
+          PREFIX: weeklyreports/
+          TABLE_ARN: arn:aws:dynamodb:us-east-1:123456789:table/amplify-CHAT-USAGE-TABLE-NAME
+          SNS_TOPIC: !Ref ExportNotification
+      Code:
+        S3Bucket: BUCKET-WHERE-ZIP-FILE-IS-UPLOADED
+        S3Key: weeklyreportingcode.zip
+
+  
+
