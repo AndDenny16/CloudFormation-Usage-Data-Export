@@ -23,7 +23,7 @@ CloudFormationTemplate for creating a lambda function/permissions that exports D
   3. EventBridge Rule
      - Will Execute Lambda Function Every Day at 8PM EST `0 1 * * ? *` (1:00 AM UTC, equivalent to 8:00 PM EST)
 
-  4. S3 Bucket: ORG-DECIDED-weeklyreportingparquets
+  4. S3 Bucket: ORG-DECIDED-NAME-weeklyreportingparquets
      - S3 Default Encryption
      - Access Control : Private
      - Stack Deletion: all items will be retained
