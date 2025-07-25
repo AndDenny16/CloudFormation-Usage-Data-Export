@@ -11,7 +11,7 @@ CloudFormationTemplate for creating a lambda function/permissions that exports D
            - S3:PutObject
            - s3:AbortMultipartUpload
         
-  2. Lambda Function: Prod-Chat-Usage-DB-Export-S3
+  2. Lambda Function
      - Python Runtime 3.12
      - Timeout : 6 minutes
      - Code Stored as a zip file in : BUCKET-WHERE-ZIP-FILE-IS-UPLOADED/weeklyreporting.zip
@@ -23,7 +23,7 @@ CloudFormationTemplate for creating a lambda function/permissions that exports D
   3. EventBridge Rule
      - Will Execute Lambda Function Every Day at 8PM EST `0 1 * * ? *` (1:00 AM UTC, equivalent to 8:00 PM EST)
 
-  4. S3 Bucket: amplify-weeklyreportingparquets
+  4. S3 Bucket: ORG-DECIDED-weeklyreportingparquets
      - S3 Default Encryption
      - Access Control : Private
      - Stack Deletion: all items will be retained
